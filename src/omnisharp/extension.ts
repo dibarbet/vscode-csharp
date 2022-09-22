@@ -46,7 +46,6 @@ import { getDecompilationAuthorization } from './decompilationPrompt';
 import { OmniSharpDotnetResolver } from './OmniSharpDotnetResolver';
 import CSharpInlayHintProvider from '../features/inlayHintProvider';
 import fileOpenClose from '../features/fileOpenCloseProvider';
-import * as dotnet from '/tmp/test/bin/dotnet.js';
 
 
 export interface ActivationResult {
@@ -56,10 +55,6 @@ export interface ActivationResult {
 }
 
 export async function activate(context: vscode.ExtensionContext, packageJSON: any, platformInfo: PlatformInformation, provider: NetworkSettingsProvider, eventStream: EventStream, optionProvider: OptionProvider, extensionPath: string) {
-    await dotnet.boot();
-    const name = dotnet.HelloWorld.GetName();
-    console.log(name);
-
     const documentSelector: vscode.DocumentSelector = {
         language: 'csharp',
     };
