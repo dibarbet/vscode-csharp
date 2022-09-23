@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as OmniSharp from './omnisharp/extension';
-import * as coreclrdebug from './coreclr-debug/activate';
+//import * as coreclrdebug from './coreclr-debug/activate';
 import * as util from './common';
 import * as vscode from 'vscode';
 
@@ -36,13 +36,13 @@ import { ShowOmniSharpConfigChangePrompt } from './observers/OptionChangeObserve
 import createOptionStream from './observables/CreateOptionStream';
 import { CSharpExtensionId } from './constants/CSharpExtensionId';
 import { OpenURLObserver } from './observers/OpenURLObserver';
-import { activateRazorExtension } from './razor/razor';
-import { RazorLoggerObserver } from './observers/RazorLoggerObserver';
-import { AbsolutePathPackage } from './packageManager/AbsolutePathPackage';
-import { downloadAndInstallPackages } from './packageManager/downloadAndInstallPackages';
-import IInstallDependencies from './packageManager/IInstallDependencies';
-import { installRuntimeDependencies } from './InstallRuntimeDependencies';
-import { isValidDownload } from './packageManager/isValidDownload';
+//import { activateRazorExtension } from './razor/razor';
+//import { RazorLoggerObserver } from './observers/RazorLoggerObserver';
+//import { AbsolutePathPackage } from './packageManager/AbsolutePathPackage';
+//import { downloadAndInstallPackages } from './packageManager/downloadAndInstallPackages';
+//import IInstallDependencies from './packageManager/IInstallDependencies';
+//import { installRuntimeDependencies } from './InstallRuntimeDependencies';
+//import { isValidDownload } from './packageManager/isValidDownload';
 import { BackgroundWorkStatusBarObserver } from './observers/BackgroundWorkStatusBarObserver';
 import { getDotnetPackApi } from './DotnetPack';
 
@@ -154,9 +154,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<CSharp
     eventStream.subscribe(telemetryObserver.post);
 
     let networkSettingsProvider = vscodeNetworkSettingsProvider(vscode);
-    const useFramework = optionProvider.GetLatestOptions().useModernNet !== true;
-    let installDependencies: IInstallDependencies = async (dependencies: AbsolutePathPackage[]) => downloadAndInstallPackages(dependencies, networkSettingsProvider, eventStream, isValidDownload, useFramework);
-    let runtimeDependenciesExist = await ensureRuntimeDependencies(context.extension, eventStream, platformInfo, installDependencies, useFramework);
+    //const useFramework = optionProvider.GetLatestOptions().useModernNet !== true;
+    //let installDependencies: IInstallDependencies = async (dependencies: AbsolutePathPackage[]) => downloadAndInstallPackages(dependencies, networkSettingsProvider, eventStream, isValidDownload, useFramework);
+    //let runtimeDependenciesExist = await ensureRuntimeDependencies(context.extension, eventStream, platformInfo, installDependencies, useFramework);
 
     // activate language services
     let langServicePromise = OmniSharp.activate(context, context.extension.packageJSON, platformInfo, networkSettingsProvider, eventStream, optionProvider, context.extension.extensionPath);
@@ -170,28 +170,28 @@ export async function activate(context: vscode.ExtensionContext): Promise<CSharp
     context.subscriptions.push(optionProvider);
     context.subscriptions.push(ShowOmniSharpConfigChangePrompt(optionStream, vscode));
 
-    let coreClrDebugPromise = Promise.resolve();
-    if (runtimeDependenciesExist) {
-        // activate coreclr-debug
-        coreClrDebugPromise = coreclrdebug.activate(context.extension, context, platformInfo, eventStream, optionProvider.GetLatestOptions());
-    }
+    // let coreClrDebugPromise = Promise.resolve();
+    // if (runtimeDependenciesExist) {
+    //     // activate coreclr-debug
+    //     coreClrDebugPromise = coreclrdebug.activate(context.extension, context, platformInfo, eventStream, optionProvider.GetLatestOptions());
+    // }
 
-    let razorPromise = Promise.resolve();
-    if (!optionProvider.GetLatestOptions().razorDisabled) {
-        const razorObserver = new RazorLoggerObserver(omnisharpChannel);
-        eventStream.subscribe(razorObserver.post);
+    // let razorPromise = Promise.resolve();
+    // if (!optionProvider.GetLatestOptions().razorDisabled) {
+    //     const razorObserver = new RazorLoggerObserver(omnisharpChannel);
+    //     eventStream.subscribe(razorObserver.post);
 
-        if (!optionProvider.GetLatestOptions().razorDevMode) {
-            razorPromise = activateRazorExtension(context, context.extension.extensionPath, eventStream);
-        }
-    }
+    //     if (!optionProvider.GetLatestOptions().razorDevMode) {
+    //         razorPromise = activateRazorExtension(context, context.extension.extensionPath, eventStream);
+    //     }
+    // }
 
     return {
         initializationFinished: async () => {
             let langService = await langServicePromise;
             await langService.server.waitForEmptyEventQueue();
-            await coreClrDebugPromise;
-            await razorPromise;
+            //await coreClrDebugPromise;
+            //await razorPromise;
         },
         getAdvisor: async () => {
             let langService = await langServicePromise;
@@ -224,9 +224,9 @@ function isSupportedPlatform(platform: PlatformInformation): boolean {
     return false;
 }
 
-async function ensureRuntimeDependencies(extension: vscode.Extension<CSharpExtensionExports>, eventStream: EventStream, platformInfo: PlatformInformation, installDependencies: IInstallDependencies, useFramework: boolean): Promise<boolean> {
-    return installRuntimeDependencies(extension.packageJSON, extension.extensionPath, installDependencies, eventStream, platformInfo, useFramework);
-}
+// async function ensureRuntimeDependencies(extension: vscode.Extension<CSharpExtensionExports>, eventStream: EventStream, platformInfo: PlatformInformation, installDependencies: IInstallDependencies, useFramework: boolean): Promise<boolean> {
+//     return installRuntimeDependencies(extension.packageJSON, extension.extensionPath, installDependencies, eventStream, platformInfo, useFramework);
+// }
 
 async function initializeDotnetPath(): Promise<void> {
     const dotnetPackApi = await getDotnetPackApi();

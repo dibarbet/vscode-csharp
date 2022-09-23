@@ -103,7 +103,7 @@ export async function showProjectSelector(server: OmniSharpServer, targets: Laun
     });
 
     if (launchTarget !== undefined) {
-        return server.restart(launchTarget);
+        return server.restart(/*launchTarget*/);
     }
 }
 

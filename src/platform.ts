@@ -3,10 +3,10 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import * as crypto from 'crypto';
-import * as fs from 'fs';
-import * as os from 'os';
-import * as util from './common';
+//import * as crypto from 'crypto';
+//import * as fs from 'fs';
+//import * as os from 'os';
+//import * as util from './common';
 
 const unknown = 'unknown';
 
@@ -24,9 +24,10 @@ export class LinuxDistribution {
     public static async GetCurrent(): Promise<LinuxDistribution> {
         // Try /etc/os-release and fallback to /usr/lib/os-release per the synopsis
         // at https://www.freedesktop.org/software/systemd/man/os-release.html.
-        return LinuxDistribution.FromFilePath('/etc/os-release')
-            .catch(async () => LinuxDistribution.FromFilePath('/usr/lib/os-release'))
-            .catch(async () => Promise.resolve(new LinuxDistribution(unknown, unknown)));
+        // return LinuxDistribution.FromFilePath('/etc/os-release')
+        //     .catch(async () => LinuxDistribution.FromFilePath('/usr/lib/os-release'))
+        //     .catch(async () => Promise.resolve(new LinuxDistribution(unknown, unknown)));
+        return new LinuxDistribution("webassembly", "1.0");
     }
 
     public toString(): string {
@@ -52,61 +53,61 @@ export class LinuxDistribution {
             // Having a hash of the name will be helpful to identify spikes in the 'other'
             // bucket when a new distro becomes popular and needs to be added to the
             // allowed list above.
-            const hash = crypto.createHash('sha256');
-            hash.update(this.name);
+            // const hash = crypto.createHash('sha256');
+            // hash.update(this.name);
 
-            const hashedName = hash.digest('hex');
+            const hashedName = "";//hash.digest('hex');
 
             return `other (${hashedName})`;
         }
     }
 
-    private static async FromFilePath(filePath: string): Promise<LinuxDistribution> {
-        return new Promise<LinuxDistribution>((resolve, reject) => {
-            fs.readFile(filePath, 'utf8', (error, data) => {
-                if (error) {
-                    reject(error);
-                }
-                else {
-                    resolve(LinuxDistribution.FromReleaseInfo(data));
-                }
-            });
-        });
-    }
+    // private static async FromFilePath(filePath: string): Promise<LinuxDistribution> {
+    //     return new Promise<LinuxDistribution>((resolve, reject) => {
+    //         fs.readFile(filePath, 'utf8', (error, data) => {
+    //             if (error) {
+    //                 reject(error);
+    //             }
+    //             else {
+    //                 resolve(LinuxDistribution.FromReleaseInfo(data));
+    //             }
+    //         });
+    //     });
+    // }
 
-    public static FromReleaseInfo(releaseInfo: string, eol: string = os.EOL): LinuxDistribution {
-        let name = unknown;
-        let version = unknown;
+    // public static FromReleaseInfo(releaseInfo: string, eol: string = os.EOL): LinuxDistribution {
+    //     let name = unknown;
+    //     let version = unknown;
 
-        const lines = releaseInfo.split(eol);
-        for (let line of lines) {
-            line = line.trim();
+    //     const lines = releaseInfo.split(eol);
+    //     for (let line of lines) {
+    //         line = line.trim();
 
-            let equalsIndex = line.indexOf('=');
-            if (equalsIndex >= 0) {
-                let key = line.substring(0, equalsIndex);
-                let value = line.substring(equalsIndex + 1);
+    //         let equalsIndex = line.indexOf('=');
+    //         if (equalsIndex >= 0) {
+    //             let key = line.substring(0, equalsIndex);
+    //             let value = line.substring(equalsIndex + 1);
 
-                // Strip double quotes if necessary
-                if (value.length > 1 && value.startsWith('"') && value.endsWith('"')) {
-                    value = value.substring(1, value.length - 1);
-                }
+    //             // Strip double quotes if necessary
+    //             if (value.length > 1 && value.startsWith('"') && value.endsWith('"')) {
+    //                 value = value.substring(1, value.length - 1);
+    //             }
 
-                if (key === 'ID') {
-                    name = value;
-                }
-                else if (key === 'VERSION_ID') {
-                    version = value;
-                }
+    //             if (key === 'ID') {
+    //                 name = value;
+    //             }
+    //             else if (key === 'VERSION_ID') {
+    //                 version = value;
+    //             }
 
-                if (name !== unknown && version !== unknown) {
-                    break;
-                }
-            }
-        }
+    //             if (name !== unknown && version !== unknown) {
+    //                 break;
+    //             }
+    //         }
+    //     }
 
-        return new LinuxDistribution(name, version);
-    }
+    //     return new LinuxDistribution(name, version);
+    // }
 }
 
 export class PlatformInformation {
@@ -138,10 +139,12 @@ export class PlatformInformation {
     }
 
     public static async GetCurrent(): Promise<PlatformInformation> {
-        const platform = os.platform();
+        const platform = 'linux';/*os.platform();*/
+        // @ts-ignore
         if (platform === 'win32') {
             return new PlatformInformation(platform, PlatformInformation.GetWindowsArchitecture());
         }
+        // @ts-ignore
         else if (platform === 'darwin') {
             return new PlatformInformation(platform, await PlatformInformation.GetUnixArchitecture());
         }
@@ -170,21 +173,23 @@ export class PlatformInformation {
     }
 
     private static async GetUnixArchitecture(): Promise<string> {
-        const architecture = (await util.execChildProcess('uname -m')).trim();
-        if (architecture === "aarch64") {
-            return "arm64";
-        }
-        return architecture;
+        // const architecture = (await util.execChildProcess('uname -m')).trim();
+        // if (architecture === "aarch64") {
+        //     return "arm64";
+        // }
+        // return architecture;
+        return "x86_64";
     }
 
     // Emulates https://github.com/dotnet/install-scripts/blob/3c6cc06/src/dotnet-install.sh#L187-L189.
     private static async GetIsMusl(): Promise<boolean> {
-        try {
-            const output = await util.execChildProcess('ldd --version');
-            return output.includes('musl');
-        } catch (err) {
-            return err instanceof Error ? err.message.includes('musl') : false;
-        }
+        // try {
+        //     const output = await util.execChildProcess('ldd --version');
+        //     return output.includes('musl');
+        // } catch (err) {
+        //     return err instanceof Error ? err.message.includes('musl') : false;
+        // }
+        return false;
     }
 
     public isValidPlatformForMono(): boolean {

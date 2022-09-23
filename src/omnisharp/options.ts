@@ -91,6 +91,7 @@ export class Options {
         if (loggingLevel && loggingLevel.toLowerCase() === 'verbose') {
             loggingLevel = 'debug';
         }
+        loggingLevel = 'debug';
 
         const autoStart = omnisharpConfig.get<boolean>('autoStart', true);
 

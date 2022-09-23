@@ -5,10 +5,10 @@
 
 import * as utils from './utils';
 import * as vscode from 'vscode';
-import { AddAssetResult, addAssetsIfNecessary } from '../assets';
+//import { AddAssetResult, addAssetsIfNecessary } from '../assets';
 import reportDiagnostics, { Advisor } from '../features/diagnosticsProvider';
 import { safeLength, sum } from '../common';
-import { CSharpConfigurationProvider } from '../configurationProvider';
+//import { CSharpConfigurationProvider } from '../configurationProvider';
 import CodeActionProvider from '../features/codeActionProvider';
 import CodeLensProvider from '../features/codeLensProvider';
 import CompletionProvider, { CompletionAfterInsertCommand } from '../features/completionProvider';
@@ -26,7 +26,7 @@ import SignatureHelpProvider from '../features/signatureHelpProvider';
 import TestManager from '../features/dotnetTest';
 import WorkspaceSymbolProvider from '../features/workspaceSymbolProvider';
 import forwardChanges from '../features/changeForwarding';
-import registerCommands from '../features/commands';
+//import registerCommands from '../features/commands';
 import { PlatformInformation } from '../platform';
 import { ProjectJsonDeprecatedWarning, OmnisharpStart, RazorDevModeActive } from './loggingEvents';
 import { EventStream } from '../EventStream';
@@ -43,7 +43,7 @@ import { LanguageMiddlewareFeature } from './LanguageMiddlewareFeature';
 import SemanticTokensProvider from '../features/semanticTokensProvider';
 import SourceGeneratedDocumentProvider from '../features/sourceGeneratedDocumentProvider';
 import { getDecompilationAuthorization } from './decompilationPrompt';
-import { OmniSharpDotnetResolver } from './OmniSharpDotnetResolver';
+//import { OmniSharpDotnetResolver } from './OmniSharpDotnetResolver';
 import CSharpInlayHintProvider from '../features/inlayHintProvider';
 import fileOpenClose from '../features/fileOpenCloseProvider';
 
@@ -61,9 +61,9 @@ export async function activate(context: vscode.ExtensionContext, packageJSON: an
 
     const options = optionProvider.GetLatestOptions();
     const omnisharpMonoResolver = new OmniSharpMonoResolver(getMonoVersion);
-    const omnisharpDotnetResolver = new OmniSharpDotnetResolver(platformInfo);
+    //const omnisharpDotnetResolver = new OmniSharpDotnetResolver(platformInfo);
     const decompilationAuthorized = await getDecompilationAuthorization(context, optionProvider);
-    const server = new OmniSharpServer(vscode, provider, packageJSON, platformInfo, eventStream, optionProvider, extensionPath, omnisharpMonoResolver, omnisharpDotnetResolver, decompilationAuthorized);
+    const server = new OmniSharpServer(vscode, provider, packageJSON, platformInfo, eventStream, optionProvider, extensionPath, omnisharpMonoResolver, /*omnisharpDotnetResolver,*/ decompilationAuthorized);
     const advisor = new Advisor(server, optionProvider); // create before server is started
     const disposables = new CompositeDisposable();
     const languageMiddlewareFeature = new LanguageMiddlewareFeature();
@@ -134,17 +134,17 @@ export async function activate(context: vscode.ExtensionContext, packageJSON: an
         localDisposables = undefined;
     }));
 
-    disposables.add(registerCommands(context, server, platformInfo, eventStream, optionProvider, omnisharpMonoResolver, omnisharpDotnetResolver, packageJSON, extensionPath));
+    //disposables.add(registerCommands(context, server, platformInfo, eventStream, optionProvider, omnisharpMonoResolver, omnisharpDotnetResolver, packageJSON, extensionPath));
 
-    if (!context.workspaceState.get<boolean>('assetPromptDisabled')) {
-        disposables.add(server.onServerStart(async () => {
-            // Update or add tasks.json and launch.json
-            const result = await addAssetsIfNecessary(server);
-            if (result === AddAssetResult.Disable) {
-                context.workspaceState.update('assetPromptDisabled', true);
-            }
-        }));
-    }
+    // if (!context.workspaceState.get<boolean>('assetPromptDisabled')) {
+    //     disposables.add(server.onServerStart(async () => {
+    //         // Update or add tasks.json and launch.json
+    //         const result = await addAssetsIfNecessary(server);
+    //         if (result === AddAssetResult.Disable) {
+    //             context.workspaceState.update('assetPromptDisabled', true);
+    //         }
+    //     }));
+    // }
 
     // After server is started (and projects are loaded), check to see if there are
     // any project.json projects if the suppress option is not set. If so, notify the user about migration.
@@ -210,7 +210,7 @@ export async function activate(context: vscode.ExtensionContext, packageJSON: an
     }));
 
     // Register ConfigurationProvider
-    disposables.add(vscode.debug.registerDebugConfigurationProvider('coreclr', new CSharpConfigurationProvider(server)));
+    //disposables.add(vscode.debug.registerDebugConfigurationProvider('coreclr', new CSharpConfigurationProvider(server)));
 
     context.subscriptions.push(disposables);
 

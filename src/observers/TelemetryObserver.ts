@@ -3,8 +3,8 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import * as crypto from 'crypto';
-import { machineIdSync } from 'node-machine-id';
+//import * as crypto from 'crypto';
+//import { machineIdSync } from 'node-machine-id';
 import { PlatformInformation } from "../platform";
 import { BaseEvent, InstallationFailure, TestExecutionCountReport, TelemetryEventWithMeasures, TelemetryEvent, ProjectConfiguration, TelemetryErrorEvent, OmnisharpInitialisation } from "../omnisharp/loggingEvents";
 import { PackageError } from "../packageManager/PackageError";
@@ -69,7 +69,7 @@ export class TelemetryObserver {
 
     private async handleOmnisharpInitialisation(event: OmnisharpInitialisation) {
         this.dotnetInfo = await getDotnetInfo(event.dotNetCliPaths);
-        this.solutionId = this.createSolutionId(event.solutionPath);
+        this.solutionId = /*this.createSolutionId(event.solutionPath)*/"";
     }
 
     private handleInstallationSuccess(telemetryProps: { [key: string]: string; }) {
@@ -125,12 +125,12 @@ export class TelemetryObserver {
         return telemetryProps;
     }
 
-    private createSolutionId(solutionPath: string) {
-        const solutionHash = crypto.createHash('sha256').update(solutionPath).digest('hex');
+    // private createSolutionId(solutionPath: string) {
+    //     const solutionHash = crypto.createHash('sha256').update(solutionPath).digest('hex');
 
-        const machineId = machineIdSync();
-        const machineHash = crypto.createHash('sha256').update(machineId).digest('hex');
+    //     const machineId = machineIdSync();
+    //     const machineHash = crypto.createHash('sha256').update(machineId).digest('hex');
 
-        return crypto.createHash('sha256').update(solutionHash + machineHash).digest('hex');
-    }
+    //     return crypto.createHash('sha256').update(solutionHash + machineHash).digest('hex');
+    // }
 }

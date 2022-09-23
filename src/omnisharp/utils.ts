@@ -3,12 +3,12 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import * as fs from 'fs-extra';
+//import * as fs from 'fs-extra';
 import { OmniSharpServer } from './server';
-import * as path from 'path';
+//import * as path from 'path';
 import * as protocol from './protocol';
 import * as vscode from 'vscode';
-import { MSBuildProject } from './protocol';
+//import { MSBuildProject } from './protocol';
 import { CancellationToken } from 'vscode-languageserver-protocol';
 
 export async function codeCheck(server: OmniSharpServer, request: protocol.Request, token: vscode.CancellationToken) {
@@ -96,17 +96,17 @@ export async function requestWorkspaceInformation(server: OmniSharpServer) {
     if (response.MsBuild && response.MsBuild.Projects) {
         let blazorWebAssemblyProjectFound = false;
 
-        for (const project of response.MsBuild.Projects) {
-            project.IsWebProject = isWebProject(project);
+        // for (const project of response.MsBuild.Projects) {
+        //     project.IsWebProject = isWebProject(project);
 
-            const isProjectBlazorWebAssemblyProject = await isBlazorWebAssemblyProject(project);
-            const isProjectBlazorWebAssemblyHosted = isBlazorWebAssemblyHosted(project, isProjectBlazorWebAssemblyProject);
+        //     const isProjectBlazorWebAssemblyProject = await isBlazorWebAssemblyProject(project);
+        //     const isProjectBlazorWebAssemblyHosted = isBlazorWebAssemblyHosted(project, isProjectBlazorWebAssemblyProject);
 
-            project.IsBlazorWebAssemblyHosted = isProjectBlazorWebAssemblyHosted;
-            project.IsBlazorWebAssemblyStandalone = isProjectBlazorWebAssemblyProject && !project.IsBlazorWebAssemblyHosted;
+        //     project.IsBlazorWebAssemblyHosted = isProjectBlazorWebAssemblyHosted;
+        //     project.IsBlazorWebAssemblyStandalone = isProjectBlazorWebAssemblyProject && !project.IsBlazorWebAssemblyHosted;
 
-            blazorWebAssemblyProjectFound = blazorWebAssemblyProjectFound || isProjectBlazorWebAssemblyProject;
-        }
+        //     blazorWebAssemblyProjectFound = blazorWebAssemblyProjectFound || isProjectBlazorWebAssemblyProject;
+        // }
 
         if (blazorWebAssemblyProjectFound && !vscode.extensions.getExtension('ms-dotnettools.blazorwasm-companion')) {
             // No need to await this call, we don't depend on the prompt being shown.
@@ -217,57 +217,57 @@ export async function resolveInlayHints(server: OmniSharpServer, request: protoc
     return server.makeRequest<protocol.InlayHint>(protocol.Requests.InlayHintResolve, request, context);
 }
 
-function isBlazorWebAssemblyHosted(project: protocol.MSBuildProject, isProjectBlazorWebAssemblyProject: boolean): boolean {
-    if (!isProjectBlazorWebAssemblyProject) {
-        return false;
-    }
+// function isBlazorWebAssemblyHosted(project: protocol.MSBuildProject, isProjectBlazorWebAssemblyProject: boolean): boolean {
+//     if (!isProjectBlazorWebAssemblyProject) {
+//         return false;
+//     }
 
-    if (!project.IsExe) {
-        return false;
-    }
+//     if (!project.IsExe) {
+//         return false;
+//     }
 
-    if (!project.IsWebProject) {
-        return false;
-    }
+//     if (!project.IsWebProject) {
+//         return false;
+//     }
 
-    if (protocol.findNetCoreAppTargetFramework(project) === undefined) {
-        return false;
-    }
+//     if (protocol.findNetCoreAppTargetFramework(project) === undefined) {
+//         return false;
+//     }
 
-    return true;
-}
+//     return true;
+// }
 
-async function isBlazorWebAssemblyProject(project: MSBuildProject): Promise<boolean> {
-    const projectDirectory = path.dirname(project.Path);
-    const launchSettingsPath = path.join(projectDirectory, 'Properties', 'launchSettings.json');
+// async function isBlazorWebAssemblyProject(project: MSBuildProject): Promise<boolean> {
+//     const projectDirectory = path.dirname(project.Path);
+//     const launchSettingsPath = path.join(projectDirectory, 'Properties', 'launchSettings.json');
 
-    try {
-        if (!fs.pathExistsSync(launchSettingsPath)) {
-            return false;
-        }
+//     try {
+//         if (!fs.pathExistsSync(launchSettingsPath)) {
+//             return false;
+//         }
 
-        const launchSettingContent = fs.readFileSync(launchSettingsPath);
-        if (!launchSettingContent) {
-            return false;
-        }
+//         const launchSettingContent = fs.readFileSync(launchSettingsPath);
+//         if (!launchSettingContent) {
+//             return false;
+//         }
 
-        if (launchSettingContent.indexOf('"inspectUri"') > 0) {
-            return true;
-        }
-    } catch {
-        // Swallow IO errors from reading the launchSettings.json files
-    }
+//         if (launchSettingContent.indexOf('"inspectUri"') > 0) {
+//             return true;
+//         }
+//     } catch {
+//         // Swallow IO errors from reading the launchSettings.json files
+//     }
 
-    return false;
-}
+//     return false;
+// }
 
-function isWebProject(project: MSBuildProject): boolean {
-    let projectFileText = fs.readFileSync(project.Path, 'utf8');
+// function isWebProject(project: MSBuildProject): boolean {
+//     let projectFileText = fs.readFileSync(project.Path, 'utf8');
 
-    // Assume that this is an MSBuild project. In that case, look for the 'Sdk="Microsoft.NET.Sdk.Web"' attribute.
-    // TODO: Have OmniSharp provide the list of SDKs used by a project and check that list instead.
-    return projectFileText.toLowerCase().indexOf('sdk="microsoft.net.sdk.web"') >= 0;
-}
+//     // Assume that this is an MSBuild project. In that case, look for the 'Sdk="Microsoft.NET.Sdk.Web"' attribute.
+//     // TODO: Have OmniSharp provide the list of SDKs used by a project and check that list instead.
+//     return projectFileText.toLowerCase().indexOf('sdk="microsoft.net.sdk.web"') >= 0;
+// }
 
 async function showBlazorDebuggingExtensionPrompt(server: OmniSharpServer) {
     const promptShownKey = 'blazor_debugging_extension_prompt_shown';
