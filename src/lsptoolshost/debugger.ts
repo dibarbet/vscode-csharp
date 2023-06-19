@@ -14,8 +14,21 @@ import OptionProvider from '../shared/observers/OptionProvider';
 import { ServerStateChange } from './ServerStateChange';
 import { DotnetConfigurationResolver } from '../shared/dotnetConfigurationProvider';
 import { getCSharpDevKit } from '../utils/getCSharpDevKit';
+import { ILanguageClientRegistration } from './ILanguageClientRegistration';
+import { IDisposable } from '../Disposable';
+import { RoslynLanguageClientInstance } from './roslynLanguageClient';
 
-export function registerDebugger(context: vscode.ExtensionContext, languageServer: RoslynLanguageServer, platformInfo: PlatformInformation, optionProvider: OptionProvider, csharpOutputChannel: vscode.OutputChannel) {
+export class DebuggerRegistration implements ILanguageClientRegistration {
+    registerBeforeStart(languageClient: RoslynLanguageClientInstance): IDisposable | undefined {
+        throw new Error('Method not implemented.');
+    }
+    registerAfterStart(languageClient: RoslynLanguageClientInstance): IDisposable | undefined {
+        throw new Error('Method not implemented.');
+    }
+
+}
+
+export function registerDebugger(context: vscode.ExtensionContext, languageClient: RoslynLanguageClientInstance, platformInfo: PlatformInformation, optionProvider: OptionProvider, csharpOutputChannel: vscode.OutputChannel) {
     let workspaceInformationProvider: IWorkspaceDebugInformationProvider = new RoslynWorkspaceDebugInformationProvider(languageServer);
 
     let disposable = languageServer.registerStateChangeEvent(async (state) => {

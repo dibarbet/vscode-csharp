@@ -7,15 +7,15 @@ import * as vscode from 'vscode';
 import { mapAsync } from '../common';
 import { IWorkspaceDebugInformationProvider, ProjectDebugInformation } from "../shared/IWorkspaceDebugInformationProvider";
 import { isBlazorWebAssemblyHosted, isBlazorWebAssemblyProject, isWebProject } from '../shared/utils';
-import { RoslynLanguageServer } from "./roslynLanguageServer";
 import { RoslynProtocol, WorkspaceDebugConfigurationRequest } from "./roslynProtocol";
 import { UriConverter } from './uriConverter';
+import { RoslynLanguageClientInstance } from './roslynLanguageClient';
 
  export class RoslynWorkspaceDebugInformationProvider implements IWorkspaceDebugInformationProvider {
-    constructor(private server: RoslynLanguageServer) { }
+    constructor(private languageClient: RoslynLanguageClientInstance) { }
 
     public async getWorkspaceDebugInformation(workspaceFolder: vscode.Uri): Promise<ProjectDebugInformation[] | undefined> {
-        if (!this.server.isRunning()) {
+        if (!this.languageClient.isRunning()) {
             return;
         }
 
@@ -23,7 +23,7 @@ import { UriConverter } from './uriConverter';
             workspacePath: UriConverter.serialize(workspaceFolder)
         };
 
-        const response = await this.server.sendRequest(WorkspaceDebugConfigurationRequest.type, params, new vscode.CancellationTokenSource().token);
+        const response = await this.languageClient.sendRequest(WorkspaceDebugConfigurationRequest.type, params, new vscode.CancellationTokenSource().token);
 
         // LSP serializes and deserializes URIs as (URI formatted) strings not actual types.  So convert to the actual type here.
         const projects: ProjectDebugInformation[] | undefined = await mapAsync(response, async (p) => {

@@ -12,40 +12,21 @@ import { registerDebugger } from './debugger';
 import { UriConverter } from './uriConverter';
 
 import {
-    DidChangeTextDocumentNotification,
-    DidCloseTextDocumentNotification,
     LanguageClientOptions,
     ServerOptions,
-    DidCloseTextDocumentParams,
-    DidChangeTextDocumentParams,
-    DocumentDiagnosticParams,
     State,
     Trace,
     RequestType,
     RequestType0,
-    FormattingOptions,
-    TextDocumentIdentifier,
-    DocumentDiagnosticRequest,
-    DocumentDiagnosticReport,
-    CancellationToken,
-    CodeAction,
-    CodeActionParams,
-    CodeActionRequest,
-    CodeActionResolveRequest,
-    CompletionParams,
-    CompletionRequest,
-    CompletionResolveRequest,
-    CompletionItem,
 } from 'vscode-languageclient/node';
 import { PlatformInformation } from '../shared/platform';
 import { acquireDotNetProcessDependencies } from './dotnetRuntime';
 import { readConfigurations } from './configurationMiddleware';
 import OptionProvider from '../shared/observers/OptionProvider';
-import { DynamicFileInfoHandler } from '../razor/src/DynamicFile/DynamicFileInfoHandler';
 import ShowInformationMessage from '../shared/observers/utils/ShowInformationMessage';
 import EventEmitter = require('events');
 import Disposable from '../Disposable';
-import { RegisterSolutionSnapshotRequest, OnAutoInsertRequest, RoslynProtocol, ProjectInitializationCompleteNotification } from './roslynProtocol';
+import { RegisterSolutionSnapshotRequest, ProjectInitializationCompleteNotification } from './roslynProtocol';
 import { OpenSolutionParams } from './OpenSolutionParams';
 import { CSharpDevKitExports } from '../CSharpDevKitExports';
 import { ISolutionSnapshotProvider, SolutionSnapshotId } from './services/ISolutionSnapshotProvider';
@@ -64,21 +45,6 @@ let _traceChannel: vscode.OutputChannel;
 export const CSharpDevkitIntelliCodeExtensionId = "ms-dotnettools.vscodeintellicode-csharp";
 
 export class RoslynLanguageServer {
-
-    // These are commands that are invoked by the Razor extension, and are used to send LSP requests to the Roslyn LSP server
-    public static readonly roslynDidOpenCommand: string = 'roslyn.openRazorCSharp';
-    public static readonly roslynDidChangeCommand: string = 'roslyn.changeRazorCSharp';
-    public static readonly roslynDidCloseCommand: string = 'roslyn.closeRazorCSharp';
-    public static readonly roslynPullDiagnosticCommand: string = 'roslyn.pullDiagnosticRazorCSharp';
-    public static readonly provideCodeActionsCommand: string = 'roslyn.provideCodeActions';
-    public static readonly resolveCodeActionCommand: string = 'roslyn.resolveCodeAction';
-    public static readonly provideCompletionsCommand: string = 'roslyn.provideCompletions';
-    public static readonly resolveCompletionsCommand: string = 'roslyn.resolveCompletion';
-    public static readonly razorInitializeCommand: string = 'razor.initialize';
-
-    // These are notifications we will get from the LSP server and will forward to the Razor extension.
-    private static readonly provideRazorDynamicFileInfoMethodName: string = 'razor/provideDynamicFileInfo';
-    private static readonly removeRazorDynamicFileInfoMethodName: string = 'razor/removeDynamicFileInfo';
 
     /**
      * Event name used to fire events to the _eventBus when the server state changes.
@@ -432,54 +398,6 @@ export class RoslynLanguageServer {
         return childProcess;
     }
 
-    private registerRazor(client: RoslynLanguageClientInstance) {
-        // When the Roslyn language server sends a request for Razor dynamic file info, we forward that request along to Razor via
-        // a command.
-        client.onRequest(
-            RoslynLanguageServer.provideRazorDynamicFileInfoMethodName,
-            async request => vscode.commands.executeCommand(DynamicFileInfoHandler.provideDynamicFileInfoCommand, request));
-        client.onNotification(
-            RoslynLanguageServer.removeRazorDynamicFileInfoMethodName,
-            async notification => vscode.commands.executeCommand(DynamicFileInfoHandler.removeDynamicFileInfoCommand, notification));
-
-        // Razor will call into us (via command) for generated file didChange/didClose notifications. We'll then forward these
-        // notifications along to Roslyn. didOpen notifications are handled separately via the vscode.openTextDocument method.
-        client.addDisposable(vscode.commands.registerCommand(RoslynLanguageServer.roslynDidChangeCommand, (notification: DidChangeTextDocumentParams) => {
-            client.sendNotification(DidChangeTextDocumentNotification.method, notification);
-        }));
-        client.addDisposable(vscode.commands.registerCommand(RoslynLanguageServer.roslynDidCloseCommand, (notification: DidCloseTextDocumentParams) => {
-            client.sendNotification(DidCloseTextDocumentNotification.method, notification);
-        }));
-        client.addDisposable(vscode.commands.registerCommand(RoslynLanguageServer.roslynPullDiagnosticCommand, async (request: DocumentDiagnosticParams) => {
-            let diagnosticRequestType = new RequestType<DocumentDiagnosticParams, DocumentDiagnosticReport, any>(DocumentDiagnosticRequest.method);
-            return await this.sendRequest(diagnosticRequestType, request, CancellationToken.None);
-        }));
-
-        // The VS Code API for code actions (and the vscode.CodeAction type) doesn't support everything that LSP supports,
-        // namely the data property, which Razor needs to identify which code actions are on their allow list, so we need
-        // to expose a command for them to directly invoke our code actions LSP endpoints, rather than use built-in commands.
-        client.addDisposable(vscode.commands.registerCommand(RoslynLanguageServer.provideCodeActionsCommand, async (request: CodeActionParams) => {
-            return await this.sendRequest(CodeActionRequest.type, request, CancellationToken.None);
-        }));
-        client.addDisposable(vscode.commands.registerCommand(RoslynLanguageServer.resolveCodeActionCommand, async (request: CodeAction) => {
-            return await this.sendRequest(CodeActionResolveRequest.type, request, CancellationToken.None);
-        }));
-
-        client.addDisposable(vscode.commands.registerCommand(RoslynLanguageServer.provideCompletionsCommand, async (request: CompletionParams) => {
-            return await this.sendRequest(CompletionRequest.type, request, CancellationToken.None);
-        }));
-        client.addDisposable(vscode.commands.registerCommand(RoslynLanguageServer.resolveCompletionsCommand, async (request: CompletionItem) => {
-            return await this.sendRequest(CompletionResolveRequest.type, request, CancellationToken.None);
-        }));
-
-        // Roslyn is responsible for producing a json file containing information for Razor, that comes from the compilation for
-        // a project. We want to defer this work until necessary, so this command is called by the Razor document manager to tell
-        // us when they need us to initialize the Razor things.
-        client.addDisposable(vscode.commands.registerCommand(RoslynLanguageServer.razorInitializeCommand, () => {
-            client.sendNotification("razor/initialize", { });
-        }));
-    }
-
     private registerExtensionsChanged(languageClient: RoslynLanguageClientInstance) {
         // subscribe to extension change events so that we can get notified if C# Dev Kit is added/removed later.
         languageClient.addDisposable(vscode.extensions.onDidChange(async () => {
@@ -611,76 +529,10 @@ export async function activateRoslynLanguageServer(context: vscode.ExtensionCont
     registerCommands(context, _languageServer);
 
     // Register any needed debugger components that need to communicate with the language server.
-    registerDebugger(context, _languageServer, platformInfo, optionProvider, _channel);
-
-    let options = optionProvider.GetLatestOptions();
-    let source = new vscode.CancellationTokenSource();
-    vscode.workspace.onDidChangeTextDocument(async e => {
-        if (!options.languageServerOptions.documentSelector.includes(e.document.languageId))
-        {
-            return;
-        }
-
-        if (e.contentChanges.length > 1 || e.contentChanges.length === 0) {
-            return;
-        }
-
-        const change = e.contentChanges[0];
-
-        if (!change.range.isEmpty) {
-            return;
-        }
-
-        const capabilities = await _languageServer.getServerCapabilities();
-
-        if (capabilities._vs_onAutoInsertProvider) {
-            if (!capabilities._vs_onAutoInsertProvider._vs_triggerCharacters.includes(change.text)) {
-                return;
-            }
-
-            source.cancel();
-            source = new vscode.CancellationTokenSource();
-            await applyAutoInsertEdit(e, source.token);
-        }
-    });
+    registerDebugger(context, _languageServer, platformInfo, optionProvider, _channel);    
 
     // Start the language server.
     _languageServer.start();
-}
-
-async function applyAutoInsertEdit(e: vscode.TextDocumentChangeEvent, token: vscode.CancellationToken) {
-    const change = e.contentChanges[0];
-
-    // Need to add 1 since the server expects the position to be where the caret is after the last token has been inserted.
-    const position = new vscode.Position(change.range.start.line, change.range.start.character + 1);
-    const uri = UriConverter.serialize(e.document.uri);
-    const textDocument = TextDocumentIdentifier.create(uri);
-    const formattingOptions = getFormattingOptions();
-    const request: RoslynProtocol.OnAutoInsertParams = { _vs_textDocument: textDocument, _vs_position: position, _vs_ch: change.text, _vs_options: formattingOptions };
-    let response = await _languageServer.sendRequest(OnAutoInsertRequest.type, request, token);
-    if (response)
-    {
-        const textEdit = response._vs_textEdit;
-        const startPosition = new vscode.Position(textEdit.range.start.line, textEdit.range.start.character);
-        const endPosition = new vscode.Position(textEdit.range.end.line, textEdit.range.end.character);
-        const docComment = new vscode.SnippetString(textEdit.newText);
-        const code: any = vscode;
-        const textEdits = [new code.SnippetTextEdit(new vscode.Range(startPosition, endPosition), docComment)];
-        let edit = new vscode.WorkspaceEdit();
-        edit.set(e.document.uri, textEdits);
-
-        const applied = vscode.workspace.applyEdit(edit);
-        if (!applied) {
-            throw new Error("Tried to insert a comment but an error occurred.");
-        }
-    }
-}
-
-function getFormattingOptions() : FormattingOptions {
-    const editorConfig = vscode.workspace.getConfiguration('editor');
-    const tabSize = editorConfig.get<number>('tabSize') ?? 4;
-    const insertSpaces = editorConfig.get<boolean>('insertSpaces') ?? true;
-    return FormattingOptions.create(tabSize, insertSpaces);
 }
 
 // this method is called when your extension is deactivated
