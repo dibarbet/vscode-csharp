@@ -11,8 +11,10 @@ import * as integrationHelpers from './integrationHelpers';
 import { InlayHint, InlayHintKind, Position } from 'vscode-languageserver-protocol';
 
 jestLib.describe(`LSP Inlay Hints ${testAssetWorkspace.description}`, function () {
+    jestLib.beforeAll(async function () {
+        await integrationHelpers.activateCSharpExtension();
+    });
     jestLib.beforeEach(async function () {
-        await testAssetWorkspace.restoreLspToolsHostAsync();
         const editorConfig = vscode.workspace.getConfiguration('editor');
         await editorConfig.update('inlayHints.enabled', true);
         const dotnetConfig = vscode.workspace.getConfiguration('dotnet');
@@ -32,10 +34,9 @@ jestLib.describe(`LSP Inlay Hints ${testAssetWorkspace.description}`, function (
         await csharpConfig.update('inlayHints.enableInlayHintsForImplicitObjectCreation', true);
 
         await integrationHelpers.openFileInWorkspaceAsync(path.join('src', 'app', 'inlayHints.cs'));
-        await integrationHelpers.activateCSharpExtension();
     });
 
-    jestLib.afterEach(async () => {
+    jestLib.afterAll(async () => {
         await testAssetWorkspace.cleanupWorkspace();
     });
 
