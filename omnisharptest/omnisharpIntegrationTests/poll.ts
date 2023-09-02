@@ -3,6 +3,8 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+import { sleep } from '../../src/common';
+
 function defaultAssertion<T>(value: T): void {
     if (value === undefined) {
         throw 'Default assertion of poll: Excepted value not to be undefined.';
@@ -89,8 +91,4 @@ export async function poll<T>(
     }
 
     throw new Error('Polling did not succeed within the alotted duration.');
-}
-
-export async function sleep(ms = 0) {
-    return new Promise((r) => setTimeout(r, ms));
 }

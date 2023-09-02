@@ -8,8 +8,9 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import OmniSharpDefinitionProvider from '../../src/features/definitionProvider';
 import { activateCSharpExtension, isSlnWithGenerator, restartOmniSharpServer } from './integrationHelpers';
-import { assertWithPoll, sleep } from './poll';
+import { assertWithPoll } from './poll';
 import testAssetWorkspace from './testAssets/omnisharpTestAssetWorkspace';
+import { sleep } from '../../src/common';
 
 suite(`${OmniSharpDefinitionProvider.name}: ${testAssetWorkspace.description}`, () => {
     let fileUri: vscode.Uri;

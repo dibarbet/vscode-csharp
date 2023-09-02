@@ -232,3 +232,7 @@ export function isNotNull<T>(value: T): asserts value is NonNullable<T> {
         throw new Error('value is null or undefined.');
     }
 }
+
+export async function sleep(ms = 0) {
+    return new Promise((r) => setTimeout(r, ms));
+}

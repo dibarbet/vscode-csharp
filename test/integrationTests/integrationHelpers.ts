@@ -9,6 +9,7 @@ import { CSharpExtensionExports } from '../../src/csharpExtensionExports';
 import { existsSync } from 'fs';
 import { ServerStateChange } from '../../src/lsptoolshost/serverStateChange';
 import testAssetWorkspace from './testAssets/testAssetWorkspace';
+import { asynchronousOperationListener } from '../../src/lsptoolshost/asyncOperationListener';
 
 export async function activateCSharpExtension(): Promise<void> {
     // Ensure the dependent extension exists - when launching via F5 launch.json we can't install the extension prior to opening vscode.
@@ -40,6 +41,9 @@ export async function activateCSharpExtension(): Promise<void> {
 
     await csharpExtension.exports.initializationFinished();
     console.log('ms-dotnettools.csharp activated');
+
+    const timeoutInMs = 30 * 1000;
+    await asynchronousOperationListener.waitForAllOperationsAsync(timeoutInMs);
 
     if (shouldRestart) {
         // Create a promise that will resolve when the project initially loads after the restart.

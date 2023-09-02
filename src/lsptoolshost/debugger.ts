@@ -15,6 +15,7 @@ import { ServerStateChange } from './serverStateChange';
 import { DotnetConfigurationResolver } from '../shared/dotnetConfigurationProvider';
 import { getCSharpDevKit } from '../utils/getCSharpDevKit';
 import { LanguageServerEvents } from './languageServerEvents';
+import { asynchronousOperationListener } from './asyncOperationListener';
 
 export function registerDebugger(
     context: vscode.ExtensionContext,
@@ -29,11 +30,13 @@ export function registerDebugger(
 
     const disposable = languageServerEvents.onServerStateChange(async (state) => {
         if (state === ServerStateChange.ProjectInitializationComplete) {
-            const csharpDevkitExtension = getCSharpDevKit();
-            if (!csharpDevkitExtension) {
-                // Update or add tasks.json and launch.json
-                await addAssetsIfNecessary(context, workspaceInformationProvider);
-            }
+            await asynchronousOperationListener.runAsynchronousOperation('GenerateAssetsPopup', async () => {
+                const csharpDevkitExtension = getCSharpDevKit();
+                if (!csharpDevkitExtension) {
+                    // Update or add tasks.json and launch.json
+                    await addAssetsIfNecessary(context, workspaceInformationProvider);
+                }
+            });
         }
     });
     context.subscriptions.push(disposable);
