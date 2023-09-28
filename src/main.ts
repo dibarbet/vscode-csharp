@@ -89,7 +89,7 @@ export async function activate(
 
     requiredPackageIds.push('Razor');
 
-    const csharpDevkitExtension = getCSharpDevKit();
+    const csharpDevkitExtension = vscode.extensions.getExtension(csharpDevkitExtensionId);
     const useOmnisharpServer = !csharpDevkitExtension && commonOptions.useOmnisharpServer;
     if (useOmnisharpServer) {
         requiredPackageIds.push('OmniSharp');

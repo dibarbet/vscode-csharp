@@ -54,7 +54,6 @@ import { registerRazorCommands } from './razorCommands';
 import { registerOnAutoInsert } from './onAutoInsert';
 import { commonOptions, languageServerOptions, omnisharpOptions } from '../shared/options';
 import { NamedPipeInformation } from './roslynProtocol';
-import { IDisposable } from '../disposable';
 
 let _channel: vscode.OutputChannel;
 let _traceChannel: vscode.OutputChannel;
@@ -404,7 +403,7 @@ export class RoslynLanguageServer {
     }
 
     private async sendOrSubscribeForServiceBrokerConnection(): Promise<void> {
-        const csharpDevKitExtension = getCSharpDevKit();
+        const csharpDevKitExtension = vscode.extensions.getExtension<CSharpDevKitExports>(csharpDevkitExtensionId);
         if (csharpDevKitExtension) {
             const exports = await csharpDevKitExtension.activate();
 
@@ -470,7 +469,7 @@ export class RoslynLanguageServer {
         // Get the brokered service pipe name from C# Dev Kit (if installed).
         // We explicitly call this in the LSP server start action instead of awaiting it
         // in our activation because C# Dev Kit depends on C# activation completing.
-        const csharpDevkitExtension = getCSharpDevKit();
+        const csharpDevkitExtension = vscode.extensions.getExtension<CSharpDevKitExports>(csharpDevkitExtensionId);
         if (csharpDevkitExtension) {
             _wasActivatedWithCSharpDevkit = true;
 
@@ -616,46 +615,6 @@ export class RoslynLanguageServer {
         );
     }
 
-    // eslint-disable-next-line @typescript-eslint/promise-function-async
-    private WaitForAttachCompleteAsync(attachRequestId: string): Promise<boolean> {
-        return new Promise<boolean>((resolve) => {
-            let didTerminateRegistation: IDisposable | null = null;
-            let customEventReg: IDisposable | null = null;
-            let isComplete = false;
-
-            const fire = (result: boolean) => {
-                if (isComplete === false) {
-                    isComplete = true;
-                    didTerminateRegistation?.dispose();
-                    customEventReg?.dispose();
-                    resolve(result);
-                }
-            };
-
-            didTerminateRegistation = vscode.debug.onDidTerminateDebugSession((session: vscode.DebugSession) => {
-                if (session.configuration.attachRequestId !== attachRequestId) {
-                    return;
-                }
-
-                fire(false);
-            });
-
-            customEventReg = vscode.debug.onDidReceiveDebugSessionCustomEvent(
-                (event: vscode.DebugSessionCustomEvent) => {
-                    if (event.session.configuration.attachRequestId !== attachRequestId) {
-                        return;
-                    }
-
-                    if (event.event !== 'attachComplete') {
-                        return;
-                    }
-
-                    fire(true);
-                }
-            );
-        });
-    }
-
     private registerDebuggerAttach() {
         this._languageClient.onRequest<RoslynProtocol.DebugAttachParams, RoslynProtocol.DebugAttachResult, void>(
             RoslynProtocol.DebugAttachRequest.type,
@@ -663,22 +622,16 @@ export class RoslynLanguageServer {
                 const debugOptions = commonOptions.unitTestDebuggingOptions;
                 const debugConfiguration: vscode.DebugConfiguration = {
                     ...debugOptions,
-                    name: '.NET Debug Unit test',
+                    name: '.NET Core Attach',
                     type: 'coreclr',
                     request: 'attach',
                     processId: request.processId,
-                    attachRequestId: randomUUID(),
                 };
 
-                const waitCompletePromise = this.WaitForAttachCompleteAsync(debugConfiguration.attachRequestId);
-
-                let success = await vscode.debug.startDebugging(undefined, debugConfiguration, undefined);
-                if (!success) {
-                    return { didAttach: false };
-                }
-
-                success = await waitCompletePromise;
-                return { didAttach: success };
+                const result = await vscode.debug.startDebugging(undefined, debugConfiguration, undefined);
+                return {
+                    didAttach: result,
+                };
             }
         );
     }

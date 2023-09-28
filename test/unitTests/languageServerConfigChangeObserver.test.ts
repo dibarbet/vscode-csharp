@@ -36,9 +36,8 @@ jestLib.describe('Option changes observer', () => {
     [
         { config: 'dotnet', section: 'server.documentSelector', value: ['other'] },
         { config: 'dotnet', section: 'server.trace', value: 'trace' },
-        { config: 'dotnet', section: 'preferCSharpExtension', value: true },
     ].forEach((elem) => {
-        jestLib.describe(`When the ${elem.config}.${elem.section} changes`, () => {
+        jestLib.describe(`When the ${elem.config} ${elem.section} changes`, () => {
             jestLib.beforeEach(() => {
                 jestLib.expect(infoMessage).toBe(undefined);
                 jestLib.expect(invokedCommand).toBe(undefined);
@@ -77,7 +76,7 @@ jestLib.describe('Option changes observer', () => {
     });
 
     [{ config: 'dotnet', section: 'server.useOmnisharp', value: true }].forEach((elem) => {
-        jestLib.describe(`When the ${elem.config}.${elem.section} changes`, () => {
+        jestLib.describe(`When the ${elem.config} ${elem.section} changes`, () => {
             jestLib.beforeEach(() => {
                 jestLib.expect(infoMessage).toBe(undefined);
                 jestLib.expect(invokedCommand).toBe(undefined);

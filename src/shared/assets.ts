@@ -293,7 +293,7 @@ export class AssetGenerator {
         }
 
         commandArgs.push('/property:GenerateFullPaths=true');
-        commandArgs.push('/consoleloggerparameters:NoSummary;ForceNoAlign');
+        commandArgs.push('/consoleloggerparameters:NoSummary');
     }
 
     private getBuildProjectPath(): string | null {

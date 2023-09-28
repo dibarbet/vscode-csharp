@@ -52,7 +52,7 @@ gulp.task('createTags', async (): Promise<void> => {
             'dotnet',
             'vscode-csharp',
             options.releaseCommit,
-            `v${options.releaseVersion}`,
+            options.releaseVersion,
             options.releaseVersion
         );
 
