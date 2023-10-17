@@ -525,6 +525,7 @@ export class RoslynLanguageServer {
             detached: true,
             windowsHide: true,
             env: env,
+            shell: true,
         };
 
         if (serverPath.endsWith('.dll')) {
