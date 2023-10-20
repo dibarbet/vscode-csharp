@@ -41,6 +41,10 @@ export class DotnetRuntimeExtensionResolver implements IHostExecutableResolver {
 
     async getHostExecutableInfo(): Promise<HostExecutableInformation> {
         let dotnetRuntimePath = commonOptions.dotnetPath;
+        if (!path.isAbsolute(dotnetRuntimePath)) {
+            dotnetRuntimePath = this.getPathForWorkspaceRelativePath(dotnetRuntimePath);
+        }
+
         const serverPath = this.getServerPath(this.platformInfo);
 
         // Check if we can find a valid dotnet from dotnet --version on the PATH.
@@ -72,6 +76,20 @@ export class DotnetRuntimeExtensionResolver implements IHostExecutableResolver {
             path: dotnetExecutablePath,
             env: process.env,
         };
+    }
+
+    private getPathForWorkspaceRelativePath(dotnetPath: string): string {
+        if (vscode.workspace.workspaceFolders === undefined) {
+            throw new Error('Cannot get workspace relative dotnet path, no workspace folders are open.')
+        }
+        for (const folder of vscode.workspace.workspaceFolders) {
+            const folderPath = folder.uri.fsPath;
+            const absolutePath = path.join(folderPath, dotnetPath);
+            if (existsSync(absolutePath)) {
+                return absolutePath;
+            }
+        }
+        throw new Error(`Could not find dotnet path '${dotnetPath}' in any workspace folder.`);
     }
 
     /**
