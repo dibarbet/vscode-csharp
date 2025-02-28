@@ -29,6 +29,7 @@ import { checkDotNetRuntimeExtensionVersion } from './checkDotNetRuntimeExtensio
 import { checkIsSupportedPlatform } from './checkSupportedPlatform';
 import { activateOmniSharp } from './activateOmniSharp';
 import { activateRoslyn } from './activateRoslyn';
+import { DeferredActivation } from './deferredActivation';
 
 export async function activate(
     context: vscode.ExtensionContext
@@ -95,22 +96,21 @@ export async function activate(
         requiredPackageIds
     );
 
-    const getCoreClrDebugPromise = async (languageServerStartedPromise: Promise<void>) => {
-        let coreClrDebugPromise = Promise.resolve();
-        if (runtimeDependenciesExist) {
-            // activate coreclr-debug
-            coreClrDebugPromise = coreclrdebug.activate(
-                context.extension,
-                context,
-                platformInfo,
-                eventStream,
-                csharpChannel,
-                languageServerStartedPromise
-            );
-        }
+    // add all activation components
+    // problem: how do I know when all activation components have been added.
+    // problem: in order to create some activation components, I need previous ones.
 
-        return coreClrDebugPromise;
-    };
+    let coreClrDebugPromise = Promise.resolve();
+    if (runtimeDependenciesExist) {
+        // activate coreclr-debug
+        coreClrDebugPromise = coreclrdebug.activate(
+            context.extension,
+            context,
+            platformInfo,
+            eventStream,
+            csharpChannel
+        );
+    }
 
     let exports: CSharpExtensionExports | OmnisharpExtensionExports;
     if (!useOmnisharpServer) {

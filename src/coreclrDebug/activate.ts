@@ -21,14 +21,14 @@ import CompositeDisposable from '../compositeDisposable';
 import { BaseVsDbgConfigurationProvider } from '../shared/configurationProvider';
 import { omnisharpOptions } from '../shared/options';
 import { ActionOption, showErrorMessage } from '../shared/observers/utils/showMessage';
+import { waitForActivated } from '../deferredActivation';
 
 export async function activate(
     thisExtension: vscode.Extension<any>,
     context: vscode.ExtensionContext,
     platformInformation: PlatformInformation,
     eventStream: EventStream,
-    csharpOutputChannel: vscode.OutputChannel,
-    languageServerStartedPromise: Promise<any> | undefined
+    csharpOutputChannel: vscode.OutputChannel
 ) {
     const disposables = new CompositeDisposable();
 
@@ -69,15 +69,13 @@ export async function activate(
     disposables.add(
         vscode.commands.registerCommand('csharp.attachToProcess', async () => {
             // Ensure dotnetWorkspaceConfigurationProvider is registered
-            if (languageServerStartedPromise) {
-                try {
-                    await languageServerStartedPromise;
-                } catch (e: any) {
-                    if (e as Error) {
-                        throw new Error(vscode.l10n.t('Unable to launch Attach to Process dialog: ') + e.message);
-                    } else {
-                        throw e;
-                    }
+            try {
+                await waitForActivated();
+            } catch (e: any) {
+                if (e as Error) {
+                    throw new Error(vscode.l10n.t('Unable to launch Attach to Process dialog: ') + e.message);
+                } else {
+                    throw e;
                 }
             }
 
