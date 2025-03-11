@@ -28,6 +28,7 @@ import { TelemetryEventNames } from '../shared/telemetryEventNames';
 import { WorkspaceStatus } from './workspace/workspaceStatus';
 import { ProjectContextStatus } from './projectContext/projectContextStatus';
 import { RoslynLanguageServer } from './server/roslynLanguageServer';
+import { registerCopilotHoverCommand } from './copilot/copilotHoverMiddleware';
 
 let _channel: vscode.LogOutputChannel;
 let _traceChannel: vscode.OutputChannel;
@@ -74,6 +75,7 @@ export async function activateRoslynLanguageServer(
     registerLanguageStatusItems(context, languageServer, languageServerEvents);
     registerMiscellaneousFileNotifier(context, languageServer);
     registerCopilotExtension(languageServer, _channel);
+    registerCopilotHoverCommand();
 
     // Register any commands that need to be handled by the extension.
     registerCommands(context, languageServer, hostExecutableResolver, _channel);

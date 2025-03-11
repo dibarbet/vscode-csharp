@@ -67,6 +67,7 @@ import { getProfilingEnvVars } from '../profiling/profiling';
 import { isString } from '../utils/isString';
 import { getServerPath } from '../activate';
 import { UriConverter } from '../utils/uriConverter';
+import { provideHover } from '../copilot/copilotHoverMiddleware';
 
 // Flag indicating if C# Devkit was installed the last time we activated.
 // Used to determine if we need to restart the server on extension changes.
@@ -288,6 +289,7 @@ export class RoslynLanguageServer {
                 workspace: {
                     configuration: (params) => readConfigurations(params),
                 },
+                provideHover,
             },
         };
 

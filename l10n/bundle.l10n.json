@@ -191,6 +191,7 @@
   "Fix All: ": "Fix All: ",
   "Pick a fix all scope": "Pick a fix all scope",
   "Fix All Code Action": "Fix All Code Action",
+  "Generate Copilot summary": "Generate Copilot summary",
   "Failed to set extension directory": "Failed to set extension directory",
   "Failed to set debugadpter directory": "Failed to set debugadpter directory",
   "Failed to set install complete file path": "Failed to set install complete file path",
