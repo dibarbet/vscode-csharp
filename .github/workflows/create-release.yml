@@ -1,0 +1,68 @@
+name: Create GitHub Release
+on:
+  push:
+    tags:        
+      - 'v2.*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ github.ref }}
+      - name: Create release from CHANGELOG
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const tag = '${{ github.ref_name }}';
+            core.info(`Creating GitHub release for tag: ${tag}`);
+
+            // Read CHANGELOG.md and extract the latest section (first single '#' header)
+            const fs = require('fs');
+            const changelog = fs.readFileSync('CHANGELOG.md', 'utf8');
+            const headerMatch = changelog.match(/^# .+$/m);
+            if (!headerMatch) {
+              core.setFailed('Could not find a top-level # header in CHANGELOG.md');
+              return;
+            }
+            const startIdx = changelog.indexOf(headerMatch[0]);
+            let endIdx = changelog.indexOf('\n# ', startIdx + headerMatch[0].length);
+            if (endIdx === -1) {
+              endIdx = changelog.length;
+            }
+            const releaseNotes = changelog.substring(startIdx, endIdx).trim();
+
+            core.info(`Release notes for tag '${tag}':\n${releaseNotes}`);
+
+            if (!tag || !tag.startsWith('v2.')) {
+              core.setFailed('Invalid tag name. Tag name must start with "v2."');
+              return;
+            }
+
+            const isPrerelease = tag.includes('-prerelease');
+            core.info(`Prerelease: ${isPrerelease}`);
+
+            try {
+              const response = await github.rest.repos.createRelease({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                tag_name: tag,
+                name: tag,
+                body: releaseNotes,
+                prerelease: isPrerelease,
+              });
+              core.info(`Release created: ${response.data.html_url}`);
+            } catch (err) {
+              if (err && err.status === 422 && err.message && String(err.message).includes('already_exists')) {
+                core.warning(`Release for tag '${tag}' already exists.`);
+              } else {
+                core.setFailed(`Error creating release: ${err?.message ?? err}`);
+              }
+            }
