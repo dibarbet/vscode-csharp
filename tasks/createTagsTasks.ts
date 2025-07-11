@@ -12,67 +12,156 @@ import { PlatformInformation } from '../src/shared/platform';
 import path from 'path';
 
 interface Options {
-    releaseVersion: string;
-    releaseCommit: string;
     // Even it is specified as boolean, it would still be parsed as string in compiled js.
     dryRun: string;
     githubPAT: string | null;
 }
 
+interface CreateTagsOptions extends Options {
+    releaseVersion: string;
+    releaseCommit: string;
+    prerelease: string | null;
+}
+
+interface CreateReleaseOptions extends Options {
+    tagName: string;
+}
+
 gulp.task('createTags:roslyn', async (): Promise<void> => {
-    const options = minimist<Options>(process.argv.slice(2));
+    const options = minimist<CreateTagsOptions>(process.argv.slice(2));
 
     return createTagsAsync(
         options,
         'dotnet',
         'roslyn',
         async () => getCommitFromNugetAsync(allNugetPackages.roslyn),
-        (releaseVersion: string): [string, string] => [
-            `VSCode-CSharp-${releaseVersion}`,
-            `${releaseVersion} VSCode C# extension release`,
-        ]
+        (releaseVersion: string, isPrerelease: boolean): [string, string] => {
+            const prereleaseText = isPrerelease ? 'prerelease' : 'release';
+            return [
+                `VSCode-CSharp-${releaseVersion}-${prereleaseText}`,
+                `${releaseVersion} VSCode C# extension ${prereleaseText}`,
+            ];
+        }
     );
 });
 
 gulp.task('createTags:razor', async (): Promise<void> => {
-    const options = minimist<Options>(process.argv.slice(2));
+    const options = minimist<CreateTagsOptions>(process.argv.slice(2));
 
     return createTagsAsync(
         options,
         'dotnet',
         'razor',
         async () => getCommitFromNugetAsync(allNugetPackages.razor),
-        (releaseVersion: string): [string, string] => [
-            `VSCode-CSharp-${releaseVersion}`,
-            `${releaseVersion} VSCode C# extension release`,
-        ]
+        (releaseVersion: string, isPrerelease: boolean): [string, string] => {
+            const prereleaseText = isPrerelease ? 'prerelease' : 'release';
+            return [
+                `VSCode-CSharp-${releaseVersion}-${prereleaseText}`,
+                `${releaseVersion} VSCode C# extension ${prereleaseText}`,
+            ];
+        }
     );
 });
 
 gulp.task('createTags:vscode-csharp', async (): Promise<void> => {
-    const options = minimist<Options>(process.argv.slice(2));
+    const options = minimist<CreateTagsOptions>(process.argv.slice(2));
 
     return createTagsAsync(
         options,
         'dotnet',
         'vscode-csharp',
         async () => options.releaseCommit,
-        (releaseVersion: string): [string, string] => [`v${releaseVersion}`, releaseVersion]
+        (releaseVersion: string, isPrerelease: boolean): [string, string] => {
+            const prereleaseText = isPrerelease ? 'prerelease' : 'release';
+            return [`v${releaseVersion}-${prereleaseText}`, releaseVersion];
+        }
     );
 });
 
 gulp.task('createTags', gulp.series('createTags:roslyn', 'createTags:razor', 'createTags:vscode-csharp'));
 
+gulp.task('createRelease:vscode-csharp', async (): Promise<void> => {
+    const options = minimist<CreateReleaseOptions>(process.argv.slice(2));
+    const dryRun = getFlag('dryRun', options);
+    const pat = getGitHubPAT(options);
+    const tagName = options.tagName;
+    if (!tagName) {
+        logError('Missing required argument: --tagName');
+        return;
+    }
+
+    if (!tagName.startsWith('v2.')) {
+        logError('Invalid tag name. Tag name must start with "v2."');
+        return;
+    }
+
+    await createReleaseFromChangelog(pat, dryRun, tagName);
+});
+
+async function createReleaseFromChangelog(pat: string, dryRun: boolean, tag: string): Promise<void> {
+    // Read CHANGELOG.md and extract the latest section (first single '#' header)
+    const changelog = fs.readFileSync('CHANGELOG.md', 'utf8');
+    const headerMatch = changelog.match(/^# .+$/m);
+    if (!headerMatch) {
+        logError('Could not find a top-level # header in CHANGELOG.md');
+        return;
+    }
+    const startIdx = changelog.indexOf(headerMatch[0]);
+    let endIdx = changelog.indexOf('\n# ', startIdx + headerMatch[0].length);
+    if (endIdx === -1) {
+        endIdx = changelog.length;
+    }
+    // Include the heading in the release notes
+    const releaseNotes = changelog.substring(startIdx, endIdx).trim();
+
+    const isPrerelease = tag.includes('-prerelease');
+
+    console.log(`Creating GitHub release for tag: ${tag}`);
+    console.log(`Prerelease: ${isPrerelease}`);
+    console.log(`Dry run: ${dryRun}`);
+
+    const octokit = new Octokit({ auth: pat });
+    await octokit.auth();
+
+    if (dryRun) {
+        console.log(`[DryRun] Would create release for tag ${tag} with prerelease=${isPrerelease}`);
+        console.log(`[DryRun] Release notes:\n${releaseNotes}`);
+        return;
+    }
+
+    try {
+        const response = await octokit.repos.createRelease({
+            owner: 'dibarbet',
+            repo: 'vscode-csharp',
+            tag_name: tag,
+            name: tag,
+            body: releaseNotes,
+            prerelease: isPrerelease,
+        });
+        if (response.status === 201) {
+            console.log(`Release created: ${response.data.html_url}`);
+        } else {
+            logError(`Failed to create release. Status: ${response.status}`);
+        }
+    } catch (err: any) {
+        if (err.status === 422 && err.message && err.message.includes('already_exists')) {
+            logWarning(`Release for tag '${tag}' already exists in dotnet/vscode-csharp.`);
+        } else {
+            logError('Error creating release: ' + err);
+        }
+    }
+}
+
 async function createTagsAsync(
-    options: Options,
+    options: CreateTagsOptions,
     owner: string,
     repo: string,
     getCommit: () => Promise<string | null>,
-    getTagAndMessage: (releaseVersion: string) => [string, string]
+    getTagAndMessage: (releaseVersion: string, isPrerelease: boolean) => [string, string]
 ): Promise<void> {
     console.log(`releaseVersion: ${options.releaseVersion}`);
     console.log(`releaseCommit: ${options.releaseCommit}`);
-    const dryRun = options.dryRun ? options.dryRun.toLocaleLowerCase() === 'true' : false;
+    const dryRun = getFlag('dryRun', options);
     console.log(`dry run: ${dryRun}`);
 
     const commit = await getCommit();
@@ -81,7 +170,8 @@ async function createTagsAsync(
         return;
     }
 
-    const [tag, message] = getTagAndMessage(options.releaseVersion);
+    const prerelease = getFlag('prerelease', options);
+    const [tag, message] = getTagAndMessage(options.releaseVersion, prerelease);
     console.log(`tag: ${tag}`);
     console.log(`message: ${message}`);
 
@@ -90,7 +180,8 @@ async function createTagsAsync(
         console.log('Tagging is skipped in dry run mode.');
         return;
     } else {
-        const tagCreated = await tagRepoAsync(owner, repo, commit, tag, message, options.githubPAT);
+        const githubPAT = getGitHubPAT(options);
+        const tagCreated = await tagRepoAsync(owner, repo, commit, tag, message, githubPAT);
 
         if (!tagCreated) {
             logError(`Failed to tag '${owner}/${repo}'`);
@@ -107,15 +198,10 @@ async function tagRepoAsync(
     commit: string,
     releaseTag: string,
     tagMessage: string,
-    githubPAT: string | null
+    githubPAT: string
 ): Promise<boolean> {
-    const pat = githubPAT ?? process.env['GitHubPAT'];
-    if (!pat) {
-        throw 'No GitHub Pat found. Specify with --githubPAT or set GitHubPAT environment variable.';
-    }
-
     console.log(`Start to tag ${owner}/${repo}. Commit: ${commit}, tag: ${releaseTag}, message: ${tagMessage}`);
-    const octokit = new Octokit({ auth: pat });
+    const octokit = new Octokit({ auth: githubPAT });
     await octokit.auth();
     const createTagResponse = await octokit.request(`POST /repos/${owner}/${repo}/git/tags`, {
         owner: owner,
@@ -130,25 +216,62 @@ async function tagRepoAsync(
         logError(`Failed to create tag for ${commit} in ${owner}/${repo}.`);
         return false;
     }
-    const refCreationResponse = await octokit.request(`Post /repos/${owner}/${repo}/git/refs`, {
-        owner: owner,
-        repo: repo,
-        ref: `refs/tags/${releaseTag}`,
-        sha: commit,
-    });
+    try {
+        const refCreationResponse = await octokit.request(`Post /repos/${owner}/${repo}/git/refs`, {
+            owner: owner,
+            repo: repo,
+            ref: `refs/tags/${releaseTag}`,
+            sha: commit,
+        });
 
-    if (refCreationResponse.status !== 201) {
-        logError(`Failed to create reference for ${commit} in ${owner}/${repo}.`);
-        return false;
+        if (refCreationResponse.status !== 201) {
+            logError(`Failed to create reference for ${commit} in ${owner}/${repo}.`);
+            return false;
+        }
+    } catch (err: any) {
+        if (err.status === 422 && err.message && err.message.includes('Reference already exists')) {
+            logWarning(`Reference for tag '${releaseTag}' already exists in ${owner}/${repo}.`);
+            return true;
+        } else {
+            logError(`Failed to create reference for ${commit} in ${owner}/${repo}: ${err}`);
+            return false;
+        }
     }
 
     console.log(`Tag is created.`);
     return true;
 }
 
+// --- Helper functions ---
+
+function getGitHubPAT(options: { githubPAT?: string | null }): string {
+    const pat = options.githubPAT ?? process.env['GitHubPAT'];
+    if (!pat) {
+        throw 'No GitHub Pat found. Specify with --githubPAT or set GitHubPAT environment variable.';
+    }
+    return pat;
+}
+
+function getFlag<T extends Options>(option: keyof T, options: T): boolean {
+    const value = options[option];
+    if (!value) {
+        logError(`Missing required argument: --${option.toString()}`);
+    }
+    if (typeof value === 'string') {
+        return value.toLocaleLowerCase() === 'true';
+    } else {
+        throw new Error(`Expected boolean value for --${option.toString()}, but got ${typeof value}`);
+    }
+}
+
+function logWarning(message: string): void {
+    console.log(`##vso[task.logissue type=warning]${message}`);
+}
+
 function logError(message: string): void {
     console.log(`##vso[task.logissue type=error]${message}`);
 }
+
 async function getCommitFromNugetAsync(packageInfo: NugetPackageInfo): Promise<string | null> {
     const packageJsonString = fs.readFileSync('./package.json').toString();
     const packageJson = JSON.parse(packageJsonString);
