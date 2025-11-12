@@ -17,6 +17,7 @@ jobs:
     uses: dotnet/arcade/.github/workflows/inter-branch-merge-base.yml@main
     with:
       configuration_file_path: '.config/snap-flow.json'
+      configuration_file_branch: 'fix_prerelease_merge'
 
   bump-main-version:
     needs: check-script
@@ -48,7 +49,7 @@ jobs:
 
   update-release-version:
     needs: check-script
-    if: github.ref == 'refs/heads/prerelease'
+    if: github.ref == 'refs/heads/fix_prerelease_merge'
     runs-on: ubuntu-latest
     steps:
       - name: Check out merge branch
