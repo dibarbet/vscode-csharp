@@ -15,6 +15,11 @@
             "MergeToBranch": "release",
             // ExtraSwitches is an optional parameter which is accepted by the script: https://github.com/dotnet/arcade/blob/main/.github/workflows/inter-branch-merge-base.yml. Accepted values are similar to the values from the version file: https://github.com/dotnet/versions/blob/main/Maestro/subscriptions.json
             "ExtraSwitches": "-QuietComments"
+        },
+        "fix_prerelease_merge": {
+            "MergeToBranch": "release",
+            // ExtraSwitches is an optional parameter which is accepted by the script: https://github.com/dotnet/arcade/blob/main/.github/workflows/inter-branch-merge-base.yml. Accepted values are similar to the values from the version file: https://github.com/dotnet/versions/blob/main/Maestro/subscriptions.json
+            "ExtraSwitches": "-QuietComments"
         }
     }
 }
