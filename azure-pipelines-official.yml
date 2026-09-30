@@ -26,6 +26,10 @@ parameters:
   - real
   - auto
   default: auto
+# Opt in to the PME service connection for manually queued real-signing builds.
+- name: pmeOverride
+  type: boolean
+  default: false
 
 resources:
   repositories:
@@ -63,3 +67,4 @@ extends:
         isOfficial: true
         channel: ${{ parameters.channel }}
         signType: ${{ parameters.signType }}
+        pmeOverride: ${{ parameters.pmeOverride }}
